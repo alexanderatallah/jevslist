@@ -2,6 +2,7 @@
 import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ArrowUp, ArrowUpRight, Check, CircleAlert, Cpu, Heart, Layers3, Loader2, MessageSquare, Plus, Sparkle, Type } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { ListCardsSkeleton, ListDetailSkeleton, PageSkeleton, RankingSkeleton } from "@/components/loading-skeletons";
 import { Toaster } from "@/components/ui/sonner";
@@ -110,12 +111,13 @@ function NewListModal({ open, onOpenChange, preset }: { open: boolean; onOpenCha
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [handle, setHandle] = useState("");
+  const [allowUrls, setAllowUrls] = useState(true);
   const [availability, setAvailability] = useState<{ slug: string; status: "checking" | "available" | "taken" | "error" }>({ slug: "", status: "checking" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
   const slug = slugify(name);
-  useEffect(() => { if (open) { setName(preset.name); setDescription(preset.description); setHandle(""); setError(""); setAvailability({ slug: "", status: "checking" }); } }, [open, preset]);
+  useEffect(() => { if (open) { setName(preset.name); setDescription(preset.description); setHandle(""); setAllowUrls(true); setError(""); setAvailability({ slug: "", status: "checking" }); } }, [open, preset]);
   useEffect(() => {
     if (!open || slug.length < 3) return;
     const controller = new AbortController();
@@ -133,13 +135,14 @@ function NewListModal({ open, onOpenChange, preset }: { open: boolean; onOpenCha
     if (!available || submitting.current) return;
     submitting.current = true; setBusy(true); setError("");
     try {
-      const data = await jsonResponse(await fetch("/api/lists", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, description, creatorHandle: handle }) }));
+      const data = await jsonResponse(await fetch("/api/lists", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, description, allowUrls, creatorHandle: handle }) }));
       onOpenChange(false); toast.success("Jev approved. Your list is ready."); window.location.assign(`/lists/${encodeURIComponent(data.list.slug)}`);
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); submitting.current = false; }
   }
   return <Dialog open={open} onOpenChange={value => { if (!busy) onOpenChange(value); }}><DialogContent className="new-list-dialog" showCloseButton={!busy} onInteractOutside={event => { if (busy) event.preventDefault(); }}><DialogHeader><DialogTitle>New list<span className="title-dot">.</span></DialogTitle><DialogDescription>Start a public list. Jev will take care of the ranking.</DialogDescription></DialogHeader><form onSubmit={submit} className="list-form">
     <div className="form-field"><label htmlFor="list-name">List name</label><input id="list-name" value={name} onChange={e => { setName(e.target.value); setError(""); }} placeholder="e.g. Favorite Words" minLength={3} maxLength={80} required disabled={busy} autoComplete="off" /><div className={`slug-preview ${status === "taken" ? "has-error" : ""}`} aria-live="polite">{slug.length >= 3 ? <><span>/lists/{slug}</span>{status === "checking" ? <Loader2 size={13} className="spin" /> : status === "available" ? <Check size={14} /> : status === "taken" ? <span>Already taken</span> : <span>Couldn’t check. Try changing the name.</span>}</> : <span>A unique link, made from your list’s name.</span>}</div></div>
     <div className="form-field"><label htmlFor="list-description">What belongs here?</label><textarea id="list-description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe the collection so Jev knows what fits." minLength={12} maxLength={1000} rows={3} required disabled={busy} /><span className="field-hint">A clear definition helps Jev make better decisions.</span></div>
+    <div className="form-field"><div className="url-policy-option"><Checkbox id="allow-urls" checked={allowUrls} onCheckedChange={value => setAllowUrls(value === true)} disabled={busy} aria-describedby="url-policy-hint" /><label htmlFor="allow-urls">Allow links</label></div><span className="field-hint" id="url-policy-hint">{allowUrls ? "People can submit links. Jev reads the linked page to check whether it belongs." : "Text entries only. Links won’t be accepted."}</span></div>
     <div className="form-field"><label htmlFor="creator-handle">Your X handle <span>optional</span></label><div className="handle-input"><span>@</span><input id="creator-handle" value={handle} onChange={e => setHandle(e.target.value.replace(/^@/, ""))} placeholder="yourhandle" maxLength={15} pattern="[A-Za-z0-9_]{1,15}" title="Use 1–15 letters, numbers, or underscores." disabled={busy} autoComplete="off" /></div><span className="field-hint">Stored privately; never shown publicly. No sign-in needed.</span></div>
     {error && <div role="alert" className="form-error"><CircleAlert size={17} /><span>{error}</span></div>}
     <div className="modal-submit"><span><Sparkle size={15} /> A quick approval from Jev before it goes live.</span><button className="button primary" type="submit" disabled={busy || !available || description.trim().length < 12}>{busy ? <><Loader2 className="spin" size={17} /> Asking Jev…</> : <>Create list <ArrowRight size={17} /></>}</button></div>
@@ -184,5 +187,5 @@ function ItemForm({ list, onAdded }: { list: List; onAdded: (item: Item) => Prom
     } catch (e) { setError((e as Error).message); }
     finally { setBusy(false); submitting.current = false; setTimeout(() => input.current?.focus(), 50); }
   }
-  return <section className={`submission-section ${busy ? "is-thinking" : ""}`}><form onSubmit={submit}><label htmlFor="new-item">Have something Jev might love?</label><div className="submission-input"><input ref={input} id="new-item" value={value} onChange={e => { setValue(e.target.value); setError(""); }} placeholder="Paste a link or write your favorite thing…" maxLength={4000} required disabled={busy} autoComplete="off" /><button type="submit" className="submit-item-button" disabled={busy || !value.trim()} aria-label="Submit item for Jev to rank">{busy ? <Loader2 className="spin" size={19} /> : <ArrowUp size={20} />}</button></div><div className="submission-help" role="status">{busy ? <><Sparkle size={14} className="thinking-icon" />{stage}</> : <><span>Anyone can submit.</span> Jev checks the fit, then scores it from 0 to 1,000.</>}</div>{error && <div className="form-error" role="alert"><CircleAlert size={17} /><span>{error}</span></div>}</form></section>;
+  return <section className={`submission-section ${busy ? "is-thinking" : ""}`}><form onSubmit={submit}><label htmlFor="new-item">Have something Jev might love?</label><div className="submission-input"><input ref={input} id="new-item" value={value} onChange={e => { setValue(e.target.value); setError(""); }} placeholder={list.allowUrls === false ? "Write your favorite thing…" : "Paste a link or write your favorite thing…"} maxLength={4000} required disabled={busy} autoComplete="off" /><button type="submit" className="submit-item-button" disabled={busy || !value.trim()} aria-label="Submit item for Jev to rank">{busy ? <Loader2 className="spin" size={19} /> : <ArrowUp size={20} />}</button></div><div className="submission-help" role="status">{busy ? <><Sparkle size={14} className="thinking-icon" />{stage}</> : <><span>Anyone can submit.</span> Jev checks the fit, then scores it from 0 to 1,000.</>}</div>{error && <div className="form-error" role="alert"><CircleAlert size={17} /><span>{error}</span></div>}</form></section>;
 }

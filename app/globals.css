@@ -231,3 +231,5 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
 @media(prefers-reduced-motion:reduce){.skeleton-surface::after{animation:none;transform:none;opacity:.3}}
 
 .site-footer{justify-content:center;align-items:center}.site-footer .powered-link{white-space:nowrap}
+
+.url-policy-option{display:flex;align-items:center;gap:10px}.url-policy-option label{cursor:pointer}.url-policy-option [data-slot="checkbox"]{width:18px;height:18px;border-radius:2px}

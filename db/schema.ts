@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { sqliteTable, text, integer, index, uniqueIndex, check } from "drizzle-orm/sqlite-core";
 export const lists = sqliteTable("lists", {
   id: text("id").primaryKey(), slug: text("slug").notNull().unique(), name: text("name").notNull(),
-  description: text("description").notNull(), creatorHandle: text("creator_handle"),
+  description: text("description").notNull(), allowUrls: integer("allow_urls", { mode: "boolean" }), creatorHandle: text("creator_handle"),
   approvalId: text("approval_id").notNull(), model: text("model").notNull(), createdAt: integer("created_at").notNull(),
 }, t => [index("idx_lists_created").on(t.createdAt, t.id)]);
 export const items = sqliteTable("list_items", {

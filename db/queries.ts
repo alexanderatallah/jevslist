@@ -3,12 +3,14 @@ import { AppError } from "@/lib/errors";
 import { hash } from "@/lib/normalization";
 import type { List, Item } from "@/lib/shared";
 export function database() { if (!env.DB) throw new AppError("The collections are temporarily unavailable. Please try again shortly.", 503); return env.DB; }
-const listSelect = `SELECT b.id, b.slug, b.name, b.description, b.created_at AS createdAt,
+const listSelect = `SELECT b.id, b.slug, b.name, b.description, b.allow_urls AS allowUrls, b.created_at AS createdAt,
  (SELECT COUNT(*) FROM list_items i WHERE i.list_id=b.id) AS itemCount,
  (SELECT title FROM list_items i WHERE i.list_id=b.id ORDER BY score DESC,created_at ASC,id ASC LIMIT 1) AS topTitle,
  (SELECT score FROM list_items i WHERE i.list_id=b.id ORDER BY score DESC,created_at ASC,id ASC LIMIT 1) AS topScore FROM lists b`;
 export const itemSelect = `SELECT id,title,content,source_url AS sourceUrl,source_host AS sourceHost,author,score,created_at AS createdAt FROM list_items`;
-export async function getList(slug: string) { return database().prepare(`${listSelect} WHERE b.slug=?`).bind(slug).first<List>(); }
+type StoredList = Omit<List,"allowUrls"> & {allowUrls:number|null};
+function publicList(row:StoredList):List { return {...row,allowUrls:row.allowUrls===null?null:row.allowUrls===1}; }
+export async function getList(slug: string) { const row=await database().prepare(`${listSelect} WHERE b.slug=?`).bind(slug).first<StoredList>();return row?publicList(row):null; }
 export async function listExists(slug: string) { return !!await database().prepare("SELECT 1 FROM lists WHERE slug=?").bind(slug).first(); }
 export async function duplicate(listId: string, inputHash: string, contentHash?: string) {
   return !!await database().prepare("SELECT 1 FROM list_items WHERE list_id=? AND (submission_hash=? OR content_hash=?) LIMIT 1").bind(listId, inputHash, contentHash || "").first();
@@ -20,8 +22,8 @@ export function decodeCursor(cursor: string | null): unknown[] | null {
 }
 export async function listLists(cursor: string | null) {
   const c=decodeCursor(cursor); if(c && (c.length!==3 || typeof c[0]!=="number" || typeof c[1]!=="number" || typeof c[2]!=="string")) throw new AppError("That page link is invalid.");
-  const {results}=await database().prepare(`SELECT * FROM (${listSelect}) ${c?"WHERE itemCount<? OR (itemCount=? AND createdAt<?) OR (itemCount=? AND createdAt=? AND id<?)":""} ORDER BY itemCount DESC,createdAt DESC,id DESC LIMIT 49`).bind(...(c?[c[0],c[0],c[1],c[0],c[1],c[2]]:[])).all<List>();
-  const lists=results.slice(0,48); const last=lists.at(-1);
+  const {results}=await database().prepare(`SELECT * FROM (${listSelect}) ${c?"WHERE itemCount<? OR (itemCount=? AND createdAt<?) OR (itemCount=? AND createdAt=? AND id<?)":""} ORDER BY itemCount DESC,createdAt DESC,id DESC LIMIT 49`).bind(...(c?[c[0],c[0],c[1],c[0],c[1],c[2]]:[])).all<StoredList>();
+  const lists=results.slice(0,48).map(publicList); const last=lists.at(-1);
   return {lists,nextCursor:results.length>48&&last?encodeCursor([last.itemCount,last.createdAt,last.id]):null};
 }
 export async function listItems(listId: string, cursor: string | null) {

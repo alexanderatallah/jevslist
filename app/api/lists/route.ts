@@ -12,8 +12,8 @@ export async function POST(request:Request) {
     if(await listExists(slug))throw new AppError("A list with this URL already exists. Choose another name.",409);
     requireJev();await rateLimit(request,"list");release=await acquireLock(`list:${slug}`);
     if(await listExists(slug))throw new AppError("A list with this URL already exists. Choose another name.",409);
-    const approved=await approveList({name:input.name,description:input.description});
-    try{await database().prepare("INSERT INTO lists(id,slug,name,description,creator_handle,approval_id,model,created_at) VALUES(?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(),slug,input.name,input.description,input.creatorHandle||null,approved.id,approved.model,Date.now()).run();}
+    const approved=await approveList({name:input.name,description:input.description,allowUrls:input.allowUrls});
+    try{await database().prepare("INSERT INTO lists(id,slug,name,description,allow_urls,creator_handle,approval_id,model,created_at) VALUES(?,?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(),slug,input.name,input.description,input.allowUrls===null?null:Number(input.allowUrls),input.creatorHandle||null,approved.id,approved.model,Date.now()).run();}
     catch(e){if(await listExists(slug))throw new AppError("Someone just created a list with this URL. Choose another name.",409);throw e;}
     return json({list:await getList(slug)},201);
   }catch(e){return errorResponse(e);}finally{if(release)await release().catch(()=>{});}

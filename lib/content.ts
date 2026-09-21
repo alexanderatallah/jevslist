@@ -37,6 +37,7 @@ async function fetchPublic(initial:URL) {
   throw new AppError("That link redirects too many times. Try the final page’s URL.",422);
 }
 const clean=(value:string)=>value.replace(/\s+/g," ").trim();
+const cleanLines=(value:string)=>value.replace(/\r\n?/g,"\n").replace(/[^\S\n]+/g," ").replace(/ *\n */g,"\n").replace(/\n{3,}/g,"\n\n").trim();
 function decodeEntities(value:string) {
   const named:Record<string,string>={amp:"&",lt:"<",gt:">",quot:'"',apos:"'",nbsp:" ",mdash:"—",ndash:"–",hellip:"…",lsquo:"‘",rsquo:"’",ldquo:"“",rdquo:"”"};
   return value.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos|nbsp|mdash|ndash|hellip|lsquo|rsquo|ldquo|rdquo);/gi,(all,key:string)=>{
@@ -46,10 +47,29 @@ function decodeEntities(value:string) {
   });
 }
 async function htmlText(html:string, selector="body") {
-  const cleaned=await new HTMLRewriter().on("script,style,noscript,nav,header,footer,aside,form,svg,[hidden],[aria-hidden='true']",{element(e){e.remove();}}).on("p,div,li,br,h1,h2,h3,blockquote",{element(e){e.before(" ");e.after(" ");}}).transform(new Response(html)).text();
+  const cleaned=await new HTMLRewriter().on("script,style,noscript,nav,header,footer,aside,form,svg,[hidden],[aria-hidden='true']",{element(e){e.remove();}}).on("p,div,section,article,li,ul,ol,br,h1,h2,h3,h4,h5,h6,blockquote,pre,tr",{element(e){e.before("\n");e.after("\n");}}).on("a,button,td,th",{element(e){e.before(" ");e.after(" ");}}).transform(new Response(html)).text();
   let text="";
   await new HTMLRewriter().on(selector,{text(t){if(text.length<40000)text+=t.text;},element(e){if(["p","div","li","br","h1","h2","h3","blockquote"].includes(e.tagName))text+="\n";}}).transform(new Response(cleaned)).text();
-  return clean(decodeEntities(text));
+  return cleanLines(decodeEntities(text));
+}
+// Keep document metadata separate from SVG accessibility titles and body text.
+export async function readHtmlPage(source:string) {
+  let documentTitle="",ogTitle="",description="",ogDescription="";
+  let seenTitle=false,captureTitle=false;
+  await new HTMLRewriter()
+    .on("head > title",{element(){captureTitle=!seenTitle;seenTitle=true;},text(t){if(captureTitle)documentTitle+=t.text;}})
+    .on("head meta[property='og:title']",{element(e){ogTitle ||= e.getAttribute("content")||"";}})
+    .on("head meta[name='description']",{element(e){description ||= e.getAttribute("content")||"";}})
+    .on("head meta[property='og:description']",{element(e){ogDescription ||= e.getAttribute("content")||"";}})
+    .transform(new Response(source)).text();
+  const main=await htmlText(source,"article,main,[role='main']");
+  const text=main.length>=40?main:await htmlText(source);
+  const summary=clean(decodeEntities(ogDescription||description));
+  return {
+    title:clean(decodeEntities(ogTitle||documentTitle)),
+    content:cleanLines([summary,text].filter(Boolean).join("\n\n")).slice(0,12000),
+    readableLength:text.length,
+  };
 }
 async function fetchTweetEmbed(id:string):Promise<Response> {
   let endpoint=new URL("https://publish.x.com/oembed");
@@ -92,15 +112,11 @@ export async function extractContent(input:string,url:URL|null):Promise<Content>
     const finalTweet=tweetId(finalUrl);if(finalTweet){await response.body?.cancel();return await readTweet(finalUrl,finalTweet);}
     const type=response.headers.get("Content-Type")?.toLowerCase()||"";
     if(!type.includes("text/html")&&!type.includes("text/plain")&&!type.includes("application/json")){await response.body?.cancel();throw new AppError("Jev reads text and web pages. Please paste the text from this file instead.",422);}
-    const source=await limitedText(response);let title="",description="",content="";
+    const source=await limitedText(response);let title="",content="";
     if(type.includes("text/html")){
-      await new HTMLRewriter().on("title",{text(t){title+=t.text;}}).on("meta[property='og:title']",{element(e){title=e.getAttribute("content")||title;}}).on("meta[name='description'],meta[property='og:description']",{element(e){description=e.getAttribute("content")||description;}}).transform(new Response(source)).text();
-      const main=await htmlText(source,"article,main,[role='main']");
-      content=main.length>=40?main:await htmlText(source);
-      title=clean(decodeEntities(title));description=clean(decodeEntities(description));
-      if(/^(just a moment|access denied|attention required|verify you are human|sign in|log in|page not found|404)/i.test(title)||content.length<30)throw new AppError("That page doesn’t expose enough readable text. Paste the relevant content instead.",422);
-      content=clean([description,content].filter(Boolean).join("\n\n")).slice(0,12000);
-    }else{content=clean(source).slice(0,12000);title=content.slice(0,120);}
+      const page=await readHtmlPage(source);title=page.title;content=page.content;
+      if(/^(just a moment|access denied|attention required|verify you are human|sign in|log in|page not found|404)/i.test(title)||page.readableLength<30)throw new AppError("That page doesn’t expose enough readable text. Paste the relevant content instead.",422);
+    }else{content=cleanLines(source).slice(0,12000);title=clean(content.split("\n")[0]).slice(0,120);}
     if(!content)throw new AppError("That page has no readable content.",422);
     return {title:(title||finalUrl.hostname).slice(0,250),content,sourceUrl:canonicalUrl(finalUrl),sourceHost:finalUrl.hostname.replace(/^www\./,""),author:null};
   }catch(error){if(error instanceof AppError)throw error;throw new AppError("We couldn’t read that link right now. Please try again or paste the item as text.",422);}
