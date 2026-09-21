@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1789945167348,
+      "tag": "0000_dashing_wiccan",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789952939581,
+      "tag": "0001_rename_lists",
+      "breakpoints": true
+    }
+  ]
+}
