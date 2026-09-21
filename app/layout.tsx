@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Jevslist",
-  description: "Bring your favorites. Let Jev put them in order. Public collections of interesting things, ranked by Jev.",
+  description: "Jev's favorite things, submitted by you",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
