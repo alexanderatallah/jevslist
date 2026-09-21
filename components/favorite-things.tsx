@@ -7,7 +7,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/u
 import { ListCardsSkeleton, ListDetailSkeleton, PageSkeleton, RankingSkeleton } from "@/components/loading-skeletons";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { type List, type Item, slugify, suggestions } from "@/lib/shared";
+import { type List, type Item, slugify, suggestions, compactWebText } from "@/lib/shared";
 import { flushSync } from "react-dom";
 import { registerPageTool } from "@/lib/webmcp";
 
@@ -89,7 +89,7 @@ export function FavoriteThings({ slug, initialData }: { slug?: string; initialDa
           <section className="list-heading"><div className="category-icon large"><CategoryIcon name={list.name} size={27} /></div><div className="list-title"><h1>{list.name}</h1><p>{list.description}</p><div className="list-byline"><span>{list.itemCount} {list.itemCount === 1 ? "thing" : "things"}</span></div></div></section>
           <ItemForm list={list} onAdded={async item => { setNewItemId(item.id); await refresh(); }} />
           <div className="section-heading ranking-heading"><h2>The ranking</h2><span className="score-heading">JEV’S SCORE <span>/ 1,000</span></span></div>
-          {items.length ? <ol className="ranking-list">{items.map((item, i) => <li key={item.id} className={`rank-row ${i === 0 ? "first-place" : ""} ${item.id === newItemId ? "just-added" : ""}`}><span className="rank-number">{String(i + 1).padStart(2, "0")}</span><div className="item-body">{i === 0 && <span className="top-pick"><Heart size={12} fill="currentColor" /> JEV’S FAVORITE</span>}<h3>{item.title}</h3>{item.content !== item.title && <ItemContent content={item.content} />}{(item.sourceUrl || item.id === newItemId) && <div className="item-meta">{item.sourceUrl ? <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">{item.author ? item.author + " · " : ""}{item.sourceHost}<ArrowUpRight size={13} /></a> : null}{item.id === newItemId && <span className="new-label">Just added</span>}</div>}</div><div className="score-cell"><strong>{item.score.toLocaleString()}</strong><div className="score-track" aria-hidden="true"><span style={{ width: `${item.score / 10}%` }} /></div></div></li>)}</ol> : <Empty className="ranking-empty"><EmptyHeader><span className="empty-heart"><Heart size={29} strokeWidth={1.25} /></span><EmptyTitle>Jev hasn’t picked a favorite. Yet.</EmptyTitle><EmptyDescription>Submit the first thing and give this list a beginning.</EmptyDescription></EmptyHeader></Empty>}
+          {items.length ? <ol className="ranking-list">{items.map((item, i) => <li key={item.id} className={`rank-row ${i === 0 ? "first-place" : ""} ${item.id === newItemId ? "just-added" : ""}`}><span className="rank-number">{String(i + 1).padStart(2, "0")}</span><div className="item-body">{i === 0 && <span className="top-pick"><Heart size={12} fill="currentColor" /> JEV’S FAVORITE</span>}<h3>{item.title}</h3>{item.content !== item.title && <ItemContent content={item.content} sourceHost={item.sourceHost} />}{(item.sourceUrl || item.id === newItemId) && <div className="item-meta">{item.sourceUrl ? <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">{item.author ? item.author + " · " : ""}{item.sourceHost}<ArrowUpRight size={13} /></a> : null}{item.id === newItemId && <span className="new-label">Just added</span>}</div>}</div><div className="score-cell"><strong>{item.score.toLocaleString()}</strong><div className="score-track" aria-hidden="true"><span style={{ width: `${item.score / 10}%` }} /></div></div></li>)}</ol> : <Empty className="ranking-empty"><EmptyHeader><span className="empty-heart"><Heart size={29} strokeWidth={1.25} /></span><EmptyTitle>Jev hasn’t picked a favorite. Yet.</EmptyTitle><EmptyDescription>Submit the first thing and give this list a beginning.</EmptyDescription></EmptyHeader></Empty>}
           <div className="ranking-footnote"><Sparkle size={15} /><p>Every score is Jev’s own opinion. <span>0 is the least favorite; 1,000 is the absolute favorite.</span></p></div>
         </>}
       </>}
@@ -100,9 +100,11 @@ export function FavoriteThings({ slug, initialData }: { slug?: string; initialDa
     <NewListModal open={open} onOpenChange={setOpen} preset={preset} /><Toaster theme="dark" position="bottom-right" />
   </div>;
 }
-function ItemContent({ content }: { content: string }) {
-  if (content.length <= 320) return <p className="item-content">{content}</p>;
-  return <details className="item-details"><summary>{content.slice(0, 240)}… <span>Read more</span></summary><p className="item-content">{content}</p></details>;
+function ItemContent({ content, sourceHost }: { content: string; sourceHost: string | null }) {
+  const isWebPage = !!sourceHost && !["x.com", "twitter.com"].includes(sourceHost);
+  const text = isWebPage ? compactWebText(content) : content;
+  if (text.length <= 320) return <p className="item-content">{text}</p>;
+  return <details className="item-details"><summary>{text.slice(0, 240)}… <span>Read more</span></summary><p className="item-content">{text}</p></details>;
 }
 function ErrorState({ message, retry }: { message: string; retry: () => void }) {
   return <Empty className="error-state"><EmptyHeader><CircleAlert size={24} /><EmptyTitle>We couldn’t load this collection</EmptyTitle><EmptyDescription>{message}</EmptyDescription></EmptyHeader><button className="button secondary" onClick={retry}>Try again</button></Empty>;

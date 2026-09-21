@@ -47,10 +47,10 @@ function decodeEntities(value:string) {
   });
 }
 async function htmlText(html:string, selector="body") {
-  const cleaned=await new HTMLRewriter().on("script,style,noscript,nav,header,footer,aside,form,svg,[hidden],[aria-hidden='true']",{element(e){e.remove();}}).on("p,div,section,article,li,ul,ol,br,h1,h2,h3,h4,h5,h6,blockquote,pre,tr",{element(e){e.before("\n");e.after("\n");}}).on("a,button,td,th",{element(e){e.before(" ");e.after(" ");}}).transform(new Response(html)).text();
+  const cleaned=await new HTMLRewriter().on("script,style,noscript,nav,header,footer,aside,form,svg,[hidden],[aria-hidden='true']",{element(e){e.remove();}}).on("p,li,br,h1,h2,h3,h4,h5,h6,blockquote,pre,tr",{element(e){e.before("\n");e.after("\n");}}).on("div,section,article,ul,ol,a,button,td,th",{element(e){e.before(" ");e.after(" ");}}).transform(new Response(html)).text();
   let text="";
   await new HTMLRewriter().on(selector,{text(t){if(text.length<40000)text+=t.text;},element(e){if(["p","div","li","br","h1","h2","h3","blockquote"].includes(e.tagName))text+="\n";}}).transform(new Response(cleaned)).text();
-  return cleanLines(decodeEntities(text));
+  return cleanLines(decodeEntities(text)).replace(/ +([,.;!?])/g,"$1");
 }
 // Keep document metadata separate from SVG accessibility titles and body text.
 export async function readHtmlPage(source:string) {

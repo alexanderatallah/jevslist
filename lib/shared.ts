@@ -8,3 +8,8 @@ export const suggestions = [
   { name: "Favorite Models", description: "AI language models, from everyday workhorses to the most capable frontier models." },
   { name: "Favorite Words", description: "English words with a beautiful sound, an interesting meaning, or a certain kind of magic." },
 ];
+
+// Website excerpts are displayed as continuous prose, including older fetched rows.
+export function compactWebText(content: string) {
+  return content.replace(/\s+/g, " ").replace(/ +([,.;!?])/g, "$1").trim();
+}
