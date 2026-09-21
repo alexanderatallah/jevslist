@@ -35,7 +35,7 @@ body{background:#fff}
 .count-label{font:12px var(--font-mono);border:0;border-left:1px solid #ccd5e3;border-radius:0;padding:0 0 0 10px;color:#7a879a}
 .list-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:0;border-left:1px solid #dce2ec;margin-top:24px}
 .list-card{border:0;border-right:1px solid #dce2ec;border-top:1px solid #dce2ec;border-bottom:1px solid #dce2ec;border-radius:0;min-height:325px;padding:26px 26px 0;box-shadow:none;background:#fff;position:relative;transition:background .18s}
-.list-card:nth-child(n+4){border-top:0}
+
 .list-card:hover{background:#f6f8fd;box-shadow:none;transform:none;border-color:#dce2ec}
 .list-card:focus-visible{outline-offset:-3px}
 .card-top{margin-bottom:26px;color:#6b81a5}
@@ -91,8 +91,8 @@ body{background:#fff}
 .field-hint{color:#78879d}
 .modal-submit .button{min-height:48px}
 @media(max-width:1000px){.list-card{padding:23px 20px 0}.list-card h3{font-size:23px}.page-heading .new-list-button{margin-top:12px}}
-@media(max-width:760px){.page-heading{gap:25px;margin-bottom:35px}.page-heading .new-list-button{margin-top:0}.list-card:nth-child(n+3){border-top:0}.list-card{min-height:320px}.site-footer{padding:24px 0;gap:18px}.rank-row{gap:14px}.submission-section{padding:20px 0 0}}
-@media(max-width:480px){.list-card{min-height:290px;padding:23px 22px 0}.list-card:nth-child(n+2){border-top:0}.list-card h3{font-size:25px}.rank-row{padding:24px 12px;gap:10px}.score-cell strong{font-size:22px}.new-list-dialog{padding:25px!important}.site-footer{gap:13px}}
+@media(max-width:760px){.page-heading{gap:25px;margin-bottom:35px}.page-heading .new-list-button{margin-top:0}.list-card{min-height:320px}.site-footer{padding:24px 0;gap:18px}.rank-row{gap:14px}.submission-section{padding:20px 0 0}}
+@media(max-width:480px){.list-card{min-height:290px;padding:23px 22px 0}.list-card h3{font-size:25px}.rank-row{padding:24px 12px;gap:10px}.score-cell strong{font-size:22px}.new-list-dialog{padding:25px!important}.site-footer{gap:13px}}
 
 /* Dark palette, sampled from the TypeSafe reference. */
 :root{
@@ -134,9 +134,9 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
 .section-heading,.ranking-heading{border-color:var(--border)}
 .count-label{border-color:#49404b;color:var(--muted-foreground)}
 .section-note,.card-index,.idea-label{color:#958a96}
-.list-grid{gap:1px;border:1px solid var(--border);background:var(--border)}
-.list-card{border:0;background:var(--card)}
-.list-card:hover{background:#1b131c;border-color:transparent}
+.list-grid{gap:clamp(12px,1.4vw,18px);border:0;background:transparent}
+.list-card{border:1px solid var(--border);background:var(--card)}
+.list-card:hover{background:#1b131c;border-color:#503346}
 .card-top,.category-icon{color:#b59bad}
 .card-description{color:var(--muted-foreground)}
 .favorite-caption{color:#bb9bb2}
@@ -204,7 +204,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
 .skeleton-surface{position:relative;overflow:hidden;isolation:isolate}
 .skeleton-surface::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(105deg,transparent 30%,#e552ba03 42%,#ef8fd514 50%,#e552ba03 58%,transparent 70%);transform:translateX(-100%);animation:skeleton-sweep 2.8s ease-in-out infinite}
 .skeleton-surface:nth-child(2)::after{animation-delay:.15s}.skeleton-surface:nth-child(3)::after{animation-delay:.3s}
-.skeleton-card{animation:none;cursor:default}.skeleton-card:hover{background:var(--card)}
+.skeleton-card{animation:none;cursor:default}.skeleton-card:hover{background:var(--card);border-color:var(--border)}
 .sk-index{width:20px;height:12px}.sk-icon-small{width:18px;height:18px}
 .sk-card-title{height:28px;width:61%;margin-bottom:18px}.sk-card-title.sk-title-1{width:67%}
 .sk-description{height:14px;width:79%}.sk-caption{height:10px;width:119px;margin-bottom:15px}
