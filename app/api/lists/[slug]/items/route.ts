@@ -1,7 +1,7 @@
 import { acquireLock, database, duplicate, getList, rateLimit } from "@/db/queries";
 import { AppError, errorResponse, publicError } from "@/lib/errors";
 import { body, itemInput } from "@/lib/http";
-import { approveItem, requireJev, scoreItem } from "@/lib/jev";
+import { approveItem, requireJev, scoreItem, type ItemValidationState } from "@/lib/jev";
 import { extractContent } from "@/lib/content";
 import { hash, inputUrl, normalizeText, submissionHash } from "@/lib/normalization";
 export async function POST(request:Request,{params}:{params:Promise<{slug:string}>}) {
@@ -21,7 +21,7 @@ export async function POST(request:Request,{params}:{params:Promise<{slug:string
         const content=await extractContent(input,url);const contentHash=await hash(normalizeText(content.content));
         if(await duplicate(list.id,inputHash,contentHash))throw new AppError("We’ve already seen this content on this list, even if the link is different.",409);
         send({stage:"Asking Jev if it belongs…"});
-        const state={list:{name:list.name,description:list.description},item:content};
+        const state:ItemValidationState={list:{name:list.name,description:list.description},submission:{input,kind:url?"url":"text",url:url?.toString()??null},item:content};
         const approved=await approveItem(state);
         send({stage:"It belongs. Jev is giving it a score…"});
         const scored=await scoreItem(state);const id=crypto.randomUUID();const createdAt=Date.now();
