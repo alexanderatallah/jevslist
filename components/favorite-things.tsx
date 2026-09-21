@@ -3,7 +3,7 @@ import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react
 import { ArrowLeft, ArrowRight, ArrowUp, ArrowUpRight, Check, CircleAlert, Cpu, Heart, Layers3, Loader2, MessageSquare, Plus, Sparkle, Type } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListCardsSkeleton, ListDetailSkeleton, PageSkeleton, RankingSkeleton } from "@/components/loading-skeletons";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { type List, type Item, slugify, suggestions } from "@/lib/shared";
@@ -21,11 +21,11 @@ async function jsonResponse(response: Response) {
 }
 export type InitialPageData = { lists?: List[]; list?: List; items?: Item[]; nextCursor: string | null };
 export function FavoriteThings({ slug, initialData }: { slug?: string; initialData?: InitialPageData }) {
-  const [navigationLabel, setNavigationLabel] = useState("");
-  useEffect(() => { const reset = () => setNavigationLabel(""); window.addEventListener("pageshow", reset); return () => window.removeEventListener("pageshow", reset); }, []);
-  function showNavigation(event: MouseEvent<HTMLAnchorElement>, label: string) {
+  const [navigation, setNavigation] = useState<{ kind: "home" | "list"; list?: List } | null>(null);
+  useEffect(() => { const reset = () => setNavigation(null); window.addEventListener("pageshow", reset); return () => window.removeEventListener("pageshow", reset); }, []);
+  function showNavigation(event: MouseEvent<HTMLAnchorElement>, kind: "home" | "list", list?: List) {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    flushSync(() => setNavigationLabel(label));
+    flushSync(() => setNavigation({ kind, list }));
   }
   const [lists, setLists] = useState<List[]>(initialData?.lists ?? []);
   const [list, setList] = useState<List | null>(initialData?.list ?? null);
@@ -72,20 +72,19 @@ export function FavoriteThings({ slug, initialData }: { slug?: string; initialDa
     } catch (e) { toast.error((e as Error).message); } finally { setLoadingMore(false); }
   }
   return <div className="site-shell">
-    {navigationLabel && <div className="navigation-loader" role="status" aria-live="polite"><Loader2 size={18} className="spin" aria-hidden="true" /><span>{navigationLabel}</span></div>}
 
-    <main className={`main-container ${slug ? "list-view" : "home-view"}`}>
-      {!slug ? <>
+    <main className={`main-container ${(navigation ? navigation.kind === "list" : !!slug) ? "list-view" : "home-view"}`} aria-busy={!!navigation || loading}>
+      {navigation ? <PageSkeleton kind={navigation.kind} list={navigation.list} /> : !slug ? <>
         <section className="page-heading"><div><h1>Jevslist<span className="title-dot">.</span></h1><p><a className="jev-link" href="https://typesafe.ai/blog/introducing-system-one-models-and-jev" target="_blank" rel="noopener noreferrer">Jev</a>'s favorite things, submitted by you</p></div><button className="button primary new-list-button" onClick={() => newList()}><span>New list</span><span className="button-key"><Plus size={19} strokeWidth={1.6} /></span></button></section>
         <div className="section-heading"><h2>All lists <span className="count-label">{loading ? "" : lists.length}{nextCursor ? "+" : ""}</span></h2></div>
-        {error ? <ErrorState message={error} retry={() => { setLoading(true); void refresh(); }} /> : loading ? <div className="list-grid">{[0,1,2].map(i => <Skeleton className="list-skeleton" key={i} />)}</div> : lists.length ? <div className="list-grid">{lists.map((b, i) => <a href={`/lists/${encodeURIComponent(b.slug)}`} onClick={event => showNavigation(event, "Loading list…")} className="list-card" key={b.id} style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
+        {error ? <ErrorState message={error} retry={() => { setLoading(true); void refresh(); }} /> : loading ? <ListCardsSkeleton /> : lists.length ? <div className="list-grid">{lists.map((b, i) => <a href={`/lists/${encodeURIComponent(b.slug)}`} onClick={event => showNavigation(event, "list", b)} className="list-card" key={b.id} style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
           <div className="card-top"><span className="card-index">{String(i + 1).padStart(2, "0")}</span><CategoryIcon name={b.name} size={18} /></div><h3>{b.name}</h3><p className="card-description">{b.description}</p>
           {b.topTitle ? <div className="card-favorite"><span className="favorite-caption"><Heart size={12} /> Jev’s top pick</span><div><span>{b.topTitle}</span><strong>{b.topScore?.toLocaleString()}</strong></div></div> : <div className="card-favorite card-favorite-empty">No items yet</div>}
           <div className="card-footer"><span><strong>{b.itemCount}</strong> {b.itemCount === 1 ? "thing" : "things"}</span><ArrowUpRight className="card-arrow" size={18} /></div>
         </a>)}</div> : <><div className="empty-intro"><h3>Every good collection starts with one thing.</h3><p>Create a list of your own, or start with an idea below.</p></div><div className="list-grid">{suggestions.map((s, i) => <button className="list-card suggestion-card" key={s.name} onClick={() => newList(s.name, s.description)} style={{ animationDelay: `${i * 50}ms` }}><div className="card-top"><span className="category-icon"><CategoryIcon name={s.name} /></span><span className="idea-label">LIST IDEA</span></div><h3>{s.name}</h3><p className="card-description">{s.description}</p><div className="suggestion-footer">Start this list <Plus size={17} /></div></button>)}</div></>}
       </> : <>
-        <a className="back-link" href="/" onClick={event => showNavigation(event, "Loading lists…")}><ArrowLeft size={16} /> All lists</a>
-        {error ? <ErrorState message={error} retry={() => { setLoading(true); void refresh(); }} /> : loading ? <div className="list-loading" role="status" aria-label="Loading list"><div className="list-loading-label"><Loader2 size={18} className="spin" aria-hidden="true" />Loading list…</div><Skeleton className="h-14 w-2/3" /><Skeleton className="h-6 w-full" /><Skeleton className="h-24 w-full" /></div> : list && <>
+        <a className="back-link" href="/" onClick={event => showNavigation(event, "home")}><ArrowLeft size={16} /> All lists</a>
+        {error ? <ErrorState message={error} retry={() => { setLoading(true); void refresh(); }} /> : loading ? <ListDetailSkeleton /> : list && <>
           <section className="list-heading"><div className="category-icon large"><CategoryIcon name={list.name} size={27} /></div><div className="list-title"><h1>{list.name}</h1><p>{list.description}</p><div className="list-byline"><span>{list.itemCount} {list.itemCount === 1 ? "thing" : "things"}</span></div></div></section>
           <ItemForm list={list} onAdded={async item => { setNewItemId(item.id); await refresh(); }} />
           <div className="section-heading ranking-heading"><h2>The ranking</h2><span className="score-heading">JEV’S SCORE <span>/ 1,000</span></span></div>
@@ -93,7 +92,8 @@ export function FavoriteThings({ slug, initialData }: { slug?: string; initialDa
           <div className="ranking-footnote"><Sparkle size={15} /><p>Every score is Jev’s own opinion. <span>0 is the least favorite; 1,000 is the absolute favorite.</span></p></div>
         </>}
       </>}
-      {nextCursor && !loading && !error && <div className="load-more"><button className="button secondary" disabled={loadingMore} onClick={loadMore}>{loadingMore ? <Loader2 className="spin" size={16} /> : null}Show more {slug ? "things" : "lists"}</button></div>}
+      {!navigation && loadingMore && (slug ? <RankingSkeleton count={2} /> : <ListCardsSkeleton count={2} />)}
+      {!navigation && nextCursor && !loading && !error && <div className="load-more"><button className="button secondary" disabled={loadingMore} onClick={loadMore}>Show more {slug ? "things" : "lists"}</button></div>}
     </main>
     <footer className="site-footer"><a className="powered-link" href="https://github.com/alexanderatallah/jevslist" target="_blank" rel="noopener noreferrer">Source code<ArrowUpRight size={14} aria-hidden="true" /></a><a className="powered-link" href="https://openrouter.ai/typesafe/jev-1.13" target="_blank" rel="noopener noreferrer">Powered by Jev on OpenRouter<ArrowUpRight size={14} aria-hidden="true" /></a></footer>
     <NewListModal open={open} onOpenChange={setOpen} preset={preset} /><Toaster theme="dark" position="bottom-right" />
