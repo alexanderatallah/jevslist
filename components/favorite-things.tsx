@@ -92,7 +92,7 @@ export function FavoriteThings({ slug, initialData }: { slug?: string; initialDa
           <div className="ranking-footnote"><Sparkle size={15} /><p>Every score is Jev’s own opinion. <span>0 is the least favorite; 1,000 is the absolute favorite.</span></p></div>
         </>}
       </>}
-      {!navigation && loadingMore && (slug ? <RankingSkeleton count={2} /> : <ListCardsSkeleton count={2} />)}
+      {!navigation && loadingMore && (slug ? <RankingSkeleton count={2} /> : <ListCardsSkeleton />)}
       {!navigation && nextCursor && !loading && !error && <div className="load-more"><button className="button secondary" disabled={loadingMore} onClick={loadMore}>Show more {slug ? "things" : "lists"}</button></div>}
     </main>
     <footer className="site-footer"><a className="powered-link" href="https://x.com/alexatallah" target="_blank" rel="noopener noreferrer">Made by Alex<ArrowUpRight size={14} aria-hidden="true" /></a><a className="powered-link" href="https://github.com/alexanderatallah/jevslist" target="_blank" rel="noopener noreferrer">Source code<ArrowUpRight size={14} aria-hidden="true" /></a><a className="powered-link" href="https://openrouter.ai/typesafe/jev-1.13" target="_blank" rel="noopener noreferrer">Powered by Jev on OpenRouter<ArrowUpRight size={14} aria-hidden="true" /></a></footer>

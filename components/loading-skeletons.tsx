@@ -4,7 +4,7 @@ import type { List } from "@/lib/shared";
 
 type ListPreview = Pick<List, "name" | "description" | "itemCount">;
 
-export function ListCardsSkeleton({ count = 2 }: { count?: number }) {
+export function ListCardsSkeleton({ count = 3 }: { count?: number }) {
   return <div className="list-grid skeleton-grid" role="status" aria-label="Loading lists">
     {Array.from({ length: count }, (_, i) => <div className="list-card skeleton-surface skeleton-card" key={i} aria-hidden="true">
       <div className="card-top"><Skeleton className="sk-index" /><Skeleton className="sk-icon-small" /></div>
