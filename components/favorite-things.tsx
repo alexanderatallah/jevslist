@@ -95,7 +95,7 @@ export function FavoriteThings({ slug, initialData }: { slug?: string; initialDa
       {!navigation && loadingMore && (slug ? <RankingSkeleton count={2} /> : <ListCardsSkeleton count={2} />)}
       {!navigation && nextCursor && !loading && !error && <div className="load-more"><button className="button secondary" disabled={loadingMore} onClick={loadMore}>Show more {slug ? "things" : "lists"}</button></div>}
     </main>
-    <footer className="site-footer"><span className="footer-credit">Made by <a href="https://x.com/alexatallah" target="_blank" rel="noopener noreferrer">Alex</a></span><a className="powered-link" href="https://github.com/alexanderatallah/jevslist" target="_blank" rel="noopener noreferrer">Source code<ArrowUpRight size={14} aria-hidden="true" /></a><a className="powered-link" href="https://openrouter.ai/typesafe/jev-1.13" target="_blank" rel="noopener noreferrer">Powered by Jev on OpenRouter<ArrowUpRight size={14} aria-hidden="true" /></a></footer>
+    <footer className="site-footer"><a className="powered-link" href="https://x.com/alexatallah" target="_blank" rel="noopener noreferrer">Made by Alex<ArrowUpRight size={14} aria-hidden="true" /></a><a className="powered-link" href="https://github.com/alexanderatallah/jevslist" target="_blank" rel="noopener noreferrer">Source code<ArrowUpRight size={14} aria-hidden="true" /></a><a className="powered-link" href="https://openrouter.ai/typesafe/jev-1.13" target="_blank" rel="noopener noreferrer">Powered by Jev on OpenRouter<ArrowUpRight size={14} aria-hidden="true" /></a></footer>
     <NewListModal open={open} onOpenChange={setOpen} preset={preset} /><Toaster theme="dark" position="bottom-right" />
   </div>;
 }
